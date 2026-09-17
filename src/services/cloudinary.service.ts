@@ -17,6 +17,18 @@ export interface UploadResult {
   publicId: string;
 }
 
+/**
+ * Optional upload options.
+ * - `publicId`: deterministic public_id for the asset. When provided, the
+ *   upload uses this ID directly (folder-prefixed) with `overwrite: true` and
+ *   `unique_filename: false`, so re-running an upload for the same logical
+ *   resource overwrites the existing Cloudinary asset instead of producing
+ *   duplicates. Useful for seed scripts and idempotent migrations.
+ */
+export interface UploadOptions {
+  publicId?: string;
+}
+
 const PLACEHOLDER_PUBLIC_ID = 'dev-placeholder';
 
 export async function uploadBuffer(
@@ -24,6 +36,7 @@ export async function uploadBuffer(
   folder: string,
   originalName: string,
   resourceType: 'image' = 'image',
+  options: UploadOptions = {},
 ): Promise<UploadResult> {
   if (!cloudinaryConfigured) {
     // Dev fallback - return a small data URL so the flow works without creds
@@ -34,13 +47,20 @@ export async function uploadBuffer(
     };
   }
 
+  // When a deterministic publicId is provided, use it as-is so re-uploads
+  // overwrite the previous asset (instead of creating duplicates).
+  // Otherwise, fall back to the historical `${Date.now()}-${slug}` form
+  // to preserve behavior for existing API callers.
+  const desiredPublicId = options.publicId ?? `${Date.now()}-${pathSafeBase(originalName)}`;
+
   return new Promise<UploadResult>((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: `dineflow/${folder}`,
         resource_type: resourceType,
-        public_id: `${Date.now()}-${pathSafeBase(originalName)}`,
+        public_id: desiredPublicId,
         overwrite: true,
+        unique_filename: false,
       },
       (err, result: UploadApiResponse | undefined) => {
         if (err || !result) {

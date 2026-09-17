@@ -9,12 +9,36 @@
  * NEVER run against a production database.
  *
  * Creates:
- *  - 3 categories (Starters, Mains, Desserts, Beverages)
+ *  - 4 categories (Starters, Mains, Desserts, Beverages)
  *  - 20 realistic restaurant products
  *  - 10 tables
  *  - 1 customer, 1 waiter, 1 kitchen user (with documented dev passwords)
+ *
+ * Product images:
+ *   For each entry in `productImageMap` below, the named file is read from
+ *   `seed-assets/products/` (at the project root) and uploaded to Cloudinary
+ *   via the existing `uploadBuffer` service.
+ *
+ *   - The returned `secure_url` is stored in `Product.image`.
+ *   - The returned `public_id` is stored in `Product.imagePublicId`.
+ *   - Image binary data is NEVER stored in MongoDB.
+ *
+ *   Cloudinary uploads use a **deterministic public_id** derived from the
+ *   product slug (e.g. `dineflow/products/caesar-salad`). Combined with
+ *   `overwrite: true` and `unique_filename: false`, this means re-running
+ *   `npm run seed` overwrites the same Cloudinary asset instead of creating
+ *   duplicates.
+ *
+ *   If Cloudinary credentials are not configured in `.env`, image upload is
+ *   skipped entirely (with a clear warning) and products are created with an
+ *   empty `image` field. If a product is not in `productImageMap`, or the
+ *   mapped file is missing on disk, the product is still created without an
+ *   image and the issue is clearly reported in the console. Seeding never
+ *   fails because of images.
  */
 
+import fs from 'fs/promises';
+import path from 'path';
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../src/config/database';
 import { UserModel } from '../src/models/user.model';
@@ -23,8 +47,84 @@ import { ProductModel } from '../src/models/product.model';
 import { TableModel } from '../src/models/table.model';
 import { hashPassword } from '../src/utils/password';
 import { ROLES } from '../src/types';
+import { uploadBuffer } from '../src/services/cloudinary.service';
+import { cloudinaryConfigured } from '../src/config/cloudinary';
 
 const DEV_PASSWORD = 'Password123!';
+
+/**
+ * Absolute path to the seed-assets/products directory.
+ * Resolved relative to this script file so it works regardless of CWD.
+ */
+const SEED_ASSETS_PRODUCTS_DIR = path.resolve(__dirname, '..', 'seed-assets', 'products');
+
+/** Allowed image extensions (case-insensitive, checked via path.extname). */
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+
+/**
+ * Build a URL-safe slug from a product name.
+ */
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * List image files in the seed-assets/products directory.
+ * Returns an empty array if the directory does not exist.
+ */
+async function listImageFiles(dir: string): Promise<string[]> {
+  try {
+    const entries = await fs.readdir(dir);
+    return entries.filter((f) => {
+      const ext = path.extname(f).toLowerCase();
+      return IMAGE_EXTENSIONS.includes(ext);
+    });
+  } catch (err: unknown) {
+    const e = err as NodeJS.ErrnoException;
+    if (e.code === 'ENOENT') {
+      return [];
+    }
+    throw err;
+  }
+}
+
+/**
+ * Resolve a target filename against the files actually present on disk,
+ * using a CASE-INSENSITIVE comparison.
+ */
+function resolveFileCaseInsensitive(onDiskFiles: string[], target: string): string | null {
+  const targetLower = target.toLowerCase();
+  for (const f of onDiskFiles) {
+    if (f.toLowerCase() === targetLower) {
+      return f;
+    }
+  }
+  return null;
+}
+
+/**
+ * Explicit product-name → image-filename mapping.
+ * Each key MUST exactly match a `name` in `seedProducts` below.
+ */
+const productImageMap: Record<string, string> = {
+  'Classic Beef Burger':  'Classic Burger.jpg',
+  'Double Cheese Burger': 'Double Cheeseburger.png',
+  'Grilled Salmon':       'grid salmon.jpg',
+  'Ribeye Steak':         'Beef Steak.jpg',
+  'Caesar Salad':         'Caesar Salad.jpg',
+  'Margherita Pizza':     'Margherita Pizza.jpg',
+  'Pepperoni Pizza':      'Pepperoni Pizza.jpg',
+  'Spaghetti Carbonara':  'Pasta Carbonara.jpg',
+  'Tiramisu':             'Tiramisu.jpg',
+  'New York Cheesecake':  'cheesecake.png',
+  'Chocolate Lava Cake':  'Chocolate Cake.jpg',
+  'Fresh Lemonade':       'Fresh Orange Juice.jpg',
+  'Iced Coffee':          'Coffee.jpg',
+};
 
 interface SeedProduct {
   name: string;
@@ -123,19 +223,95 @@ async function seed() {
   // --- Products ---
   // eslint-disable-next-line no-console
   console.log('🍔 Creating products...');
-  const productDocs = await Promise.all(
-    seedProducts.map((p) =>
-      ProductModel.create({
-        name: p.name,
-        description: p.description,
-        price: p.price,
-        categoryId: categoryByName.get(p.categoryName)!._id,
-        isAvailable: p.isAvailable,
-        image: '',
-        imagePublicId: '',
-      }),
-    ),
-  );
+
+  const onDiskFiles = await listImageFiles(SEED_ASSETS_PRODUCTS_DIR);
+
+  if (onDiskFiles.length === 0) {
+    // eslint-disable-next-line no-console
+    console.warn(`   ⚠️  No image files found in ${SEED_ASSETS_PRODUCTS_DIR}`);
+    // eslint-disable-next-line no-console
+    console.warn('      Products will be created WITHOUT images.');
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`   📁 Found ${onDiskFiles.length} image file(s) in seed-assets/products/`);
+  }
+
+  if (onDiskFiles.length > 0 && !cloudinaryConfigured) {
+    // eslint-disable-next-line no-console
+    console.warn('   ⚠️  Cloudinary credentials are not configured in .env.');
+    // eslint-disable-next-line no-console
+    console.warn('      Image upload will be SKIPPED. Set CLOUDINARY_CLOUD_NAME /');
+    // eslint-disable-next-line no-console
+    console.warn('      CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET to enable image hosting.');
+  }
+
+  const productDocs = [];
+  let withImageCount = 0;
+  let withoutImageCount = 0;
+
+  for (const p of seedProducts) {
+    let image = '';
+    let imagePublicId = '';
+
+    const expectedFile = productImageMap[p.name];
+
+    if (!expectedFile) {
+      // eslint-disable-next-line no-console
+      console.warn(`   ⏭️  No image mapping for product "${p.name}" - creating without image`);
+      withoutImageCount++;
+    } else if (onDiskFiles.length === 0) {
+      // eslint-disable-next-line no-console
+      console.warn(`   ⏭️  Skipping image for "${p.name}" - seed-assets/products/ is empty`);
+      withoutImageCount++;
+    } else if (!cloudinaryConfigured) {
+      withoutImageCount++;
+    } else {
+      const onDiskName = resolveFileCaseInsensitive(onDiskFiles, expectedFile);
+      if (!onDiskName) {
+        // eslint-disable-next-line no-console
+        console.warn(`   ⚠️  Image file "${expectedFile}" for product "${p.name}" not found in seed-assets/products/`);
+        // eslint-disable-next-line no-console
+        console.warn(`      Available files: ${onDiskFiles.join(', ')}`);
+        withoutImageCount++;
+      } else {
+        try {
+          const absPath = path.join(SEED_ASSETS_PRODUCTS_DIR, onDiskName);
+          const deterministicPublicId = slugify(p.name);
+          // eslint-disable-next-line no-console
+          console.log(`   ⬆️  Uploading image for "${p.name}" from ${onDiskName}...`);
+          const buffer = await fs.readFile(absPath);
+          const up = await uploadBuffer(buffer, 'products', onDiskName, 'image', {
+            publicId: deterministicPublicId,
+          });
+          image = up.url;
+          imagePublicId = up.publicId;
+          withImageCount++;
+          // eslint-disable-next-line no-console
+          console.log(`   ✅ Uploaded: ${image}`);
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(`   ⚠️  Failed to upload image for "${p.name}" (${onDiskName}): ${(err as Error).message}`);
+          withoutImageCount++;
+        }
+      }
+    }
+
+    const created = await ProductModel.create({
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      categoryId: categoryByName.get(p.categoryName)!._id,
+      isAvailable: p.isAvailable,
+      image,
+      imagePublicId,
+    });
+    // eslint-disable-next-line no-console
+    console.log(`   🍽️  Product created: ${created.name}  (image: ${created.image ? 'yes' : 'no'})`);
+    productDocs.push(created);
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`\n   Summary: ${withImageCount} product(s) with image, ${withoutImageCount} without.`);
 
   // --- Tables ---
   // eslint-disable-next-line no-console

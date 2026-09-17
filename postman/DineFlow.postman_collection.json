@@ -6,76 +6,20 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3000",
-      "type": "string"
-    },
-    {
-      "key": "customerToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "waiterToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "kitchenToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "customerId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "waiterId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "kitchenId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "categoryId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "productId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "tableId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "diningSessionId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "orderId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "waiterRequestId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "billId",
-      "value": "",
-      "type": "string"
-    }
+    { "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+    { "key": "customerToken", "value": "", "type": "string" },
+    { "key": "waiterToken", "value": "", "type": "string" },
+    { "key": "kitchenToken", "value": "", "type": "string" },
+    { "key": "customerId", "value": "", "type": "string" },
+    { "key": "waiterId", "value": "", "type": "string" },
+    { "key": "kitchenId", "value": "", "type": "string" },
+    { "key": "categoryId", "value": "", "type": "string" },
+    { "key": "productId", "value": "", "type": "string" },
+    { "key": "tableId", "value": "", "type": "string" },
+    { "key": "diningSessionId", "value": "", "type": "string" },
+    { "key": "orderId", "value": "", "type": "string" },
+    { "key": "waiterRequestId", "value": "", "type": "string" },
+    { "key": "billId", "value": "", "type": "string" }
   ],
   "item": [
     {
@@ -85,31 +29,24 @@
           "name": "Register (Customer)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Customer\",\n  \"email\": \"customer@dev.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"+201000000001\"\n}"
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Customer\",\n  \"email\": \"customer@dev.com\",\n  \"password\": \"Password123!\",\n  \"phone\": \"+201000000001\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('customerToken', json.data.token);\n  pm.collectionVariables.set('customerId', json.data.user.id);\n  console.log('Saved customerToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('customerToken', json.data.token);",
+                  "  pm.collectionVariables.set('customerId', json.data.user.id);",
+                  "  console.log('Saved customerToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -117,31 +54,24 @@
           "name": "Login as Customer",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"customer@dev.com\",\n  \"password\": \"Password123!\"\n}"
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"customer@dev.com\",\n  \"password\": \"Password123!\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('customerToken', json.data.token);\n  pm.collectionVariables.set('customerId', json.data.user.id);\n  console.log('Saved customerToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('customerToken', json.data.token);",
+                  "  pm.collectionVariables.set('customerId', json.data.user.id);",
+                  "  console.log('Saved customerToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -149,31 +79,24 @@
           "name": "Login as Waiter",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"waiter@dev.com\",\n  \"password\": \"Password123!\"\n}"
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"waiter@dev.com\",\n  \"password\": \"Password123!\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('waiterToken', json.data.token);\n  pm.collectionVariables.set('waiterId', json.data.user.id);\n  console.log('Saved waiterToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('waiterToken', json.data.token);",
+                  "  pm.collectionVariables.set('waiterId', json.data.user.id);",
+                  "  console.log('Saved waiterToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -181,31 +104,24 @@
           "name": "Login as Kitchen",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"kitchen@dev.com\",\n  \"password\": \"Password123!\"\n}"
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"kitchen@dev.com\",\n  \"password\": \"Password123!\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('kitchenToken', json.data.token);\n  pm.collectionVariables.set('kitchenId', json.data.user.id);\n  console.log('Saved kitchenToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('kitchenToken', json.data.token);",
+                  "  pm.collectionVariables.set('kitchenId', json.data.user.id);",
+                  "  console.log('Saved kitchenToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -214,26 +130,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "me"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
           }
         }
       ]
@@ -246,26 +146,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api","users","me"] }
           }
         },
         {
@@ -273,30 +157,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/me",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Customer Updated\",\n  \"phone\": \"+201000000009\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api","users","me"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"John Customer Updated\",\n  \"phone\": \"+201000000009\"\n}" }
           }
         },
         {
@@ -304,35 +169,13 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "multipart/form-data"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/me/profile-image",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "users",
-                "me",
-                "profile-image"
-              ]
-            },
+            "url": { "raw": "{{baseUrl}}/api/users/me/profile-image", "host": ["{{baseUrl}}"], "path": ["api","users","me","profile-image"] },
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "image",
-                  "type": "file",
-                  "src": []
-                }
+                { "key": "image", "type": "file", "src": [] }
               ]
             }
           }
@@ -347,25 +190,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api","categories"] }
           }
         },
         {
@@ -373,26 +201,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["api","categories","{{categoryId}}"] }
           }
         },
         {
@@ -400,54 +212,31 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "multipart/form-data"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories"
-              ]
-            },
+            "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api","categories"] },
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "name",
-                  "value": "Starters",
-                  "type": "text"
-                },
-                {
-                  "key": "description",
-                  "value": "Small plates to begin your meal",
-                  "type": "text"
-                },
-                {
-                  "key": "isActive",
-                  "value": "true",
-                  "type": "text"
-                },
-                {
-                  "key": "image",
-                  "type": "file",
-                  "src": []
-                }
+                { "key": "name", "value": "Starters", "type": "text" },
+                { "key": "description", "value": "Small plates to begin your meal", "type": "text" },
+                { "key": "isActive", "value": "true", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
               ]
             }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.category && json.data.category.id) {\n  pm.collectionVariables.set('categoryId', json.data.category.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.category && json.data.category.id) {",
+                  "  pm.collectionVariables.set('categoryId', json.data.category.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -456,44 +245,15 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "multipart/form-data"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            },
+            "url": { "raw": "{{baseUrl}}/api/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["api","categories","{{categoryId}}"] },
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "name",
-                  "value": "Appetizers",
-                  "type": "text"
-                },
-                {
-                  "key": "description",
-                  "value": "Updated description",
-                  "type": "text"
-                },
-                {
-                  "key": "image",
-                  "type": "file",
-                  "src": []
-                }
+                { "key": "name", "value": "Appetizers", "type": "text" },
+                { "key": "description", "value": "Updated description", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
               ]
             }
           }
@@ -503,26 +263,10 @@
           "request": {
             "method": "DELETE",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "categories",
-                "{{categoryId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["api","categories","{{categoryId}}"] }
           }
         }
       ]
@@ -535,25 +279,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/products",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api","products"] }
           }
         },
         {
@@ -561,24 +290,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/products?categoryId={{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products?categoryId={{categoryId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","products"],
+              "query": [ { "key": "categoryId", "value": "{{categoryId}}" } ]
             }
           }
         },
@@ -587,24 +306,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/products?search=burger",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products?search=burger"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","products"],
+              "query": [ { "key": "search", "value": "burger" } ]
             }
           }
         },
@@ -613,24 +322,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/products?isAvailable=true",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products?isAvailable=true"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","products"],
+              "query": [ { "key": "isAvailable", "value": "true" } ]
             }
           }
         },
@@ -639,26 +338,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/products/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products",
-                "{{productId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}"] }
           }
         },
         {
@@ -666,64 +349,33 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "multipart/form-data"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/products",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products"
-              ]
-            },
+            "url": { "raw": "{{baseUrl}}/api/products", "host": ["{{baseUrl}}"], "path": ["api","products"] },
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "name",
-                  "value": "Classic Beef Burger",
-                  "type": "text"
-                },
-                {
-                  "key": "description",
-                  "value": "180g beef patty, cheddar, fries",
-                  "type": "text"
-                },
-                {
-                  "key": "price",
-                  "value": "220",
-                  "type": "text"
-                },
-                {
-                  "key": "categoryId",
-                  "value": "{{categoryId}}",
-                  "type": "text"
-                },
-                {
-                  "key": "isAvailable",
-                  "value": "true",
-                  "type": "text"
-                },
-                {
-                  "key": "image",
-                  "type": "file",
-                  "src": []
-                }
+                { "key": "name", "value": "Classic Beef Burger", "type": "text" },
+                { "key": "description", "value": "180g beef patty, cheddar, fries", "type": "text" },
+                { "key": "price", "value": "220", "type": "text" },
+                { "key": "categoryId", "value": "{{categoryId}}", "type": "text" },
+                { "key": "isAvailable", "value": "true", "type": "text" },
+                { "key": "image", "type": "file", "src": [] }
               ]
             }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.product && json.data.product.id) {\n  pm.collectionVariables.set('productId', json.data.product.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.product && json.data.product.id) {",
+                  "  pm.collectionVariables.set('productId', json.data.product.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -732,39 +384,14 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "multipart/form-data"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/products/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products",
-                "{{productId}}"
-              ]
-            },
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}"] },
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "price",
-                  "value": "230",
-                  "type": "text"
-                },
-                {
-                  "key": "isAvailable",
-                  "value": "true",
-                  "type": "text"
-                }
+                { "key": "price", "value": "230", "type": "text" },
+                { "key": "isAvailable", "value": "true", "type": "text" }
               ]
             }
           }
@@ -774,26 +401,10 @@
           "request": {
             "method": "DELETE",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/products/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "products",
-                "{{productId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","products","{{productId}}"] }
           }
         }
       ]
@@ -806,25 +417,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/tables",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tables"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/tables", "host": ["{{baseUrl}}"], "path": ["api","tables"] }
           }
         },
         {
@@ -832,24 +428,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/tables?status=available",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tables?status=available"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","tables"],
+              "query": [ { "key": "status", "value": "available" } ]
             }
           }
         },
@@ -858,26 +444,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/tables/{{tableId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tables",
-                "{{tableId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/tables/{{tableId}}", "host": ["{{baseUrl}}"], "path": ["api","tables","{{tableId}}"] }
           }
         },
         {
@@ -885,33 +455,24 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/tables",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tables"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tableNumber\": 11,\n  \"capacity\": 4,\n  \"status\": \"available\",\n  \"location\": \"Patio\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/tables", "host": ["{{baseUrl}}"], "path": ["api","tables"] },
+            "body": { "mode": "raw", "raw": "{\n  \"tableNumber\": 11,\n  \"capacity\": 4,\n  \"status\": \"available\",\n  \"location\": \"Patio\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.table && json.data.table.id) {\n  pm.collectionVariables.set('tableId', json.data.table.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.table && json.data.table.id) {",
+                  "  pm.collectionVariables.set('tableId', json.data.table.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -920,30 +481,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/tables/{{tableId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tables",
-                "{{tableId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"reserved\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/tables/{{tableId}}", "host": ["{{baseUrl}}"], "path": ["api","tables","{{tableId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"reserved\"\n}" }
           }
         },
         {
@@ -951,26 +493,10 @@
           "request": {
             "method": "DELETE",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/tables/{{tableId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "tables",
-                "{{tableId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/tables/{{tableId}}", "host": ["{{baseUrl}}"], "path": ["api","tables","{{tableId}}"] }
           }
         }
       ]
@@ -983,33 +509,24 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/dining-sessions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dining-sessions"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tableId\": \"{{tableId}}\",\n  \"guestCount\": 2,\n  \"notes\": \"Window seat please\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/dining-sessions", "host": ["{{baseUrl}}"], "path": ["api","dining-sessions"] },
+            "body": { "mode": "raw", "raw": "{\n  \"tableId\": \"{{tableId}}\",\n  \"guestCount\": 2,\n  \"notes\": \"Window seat please\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.session && json.data.session.id) {\n  pm.collectionVariables.set('diningSessionId', json.data.session.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.session && json.data.session.id) {",
+                  "  pm.collectionVariables.set('diningSessionId', json.data.session.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1018,25 +535,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/dining-sessions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dining-sessions"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/dining-sessions", "host": ["{{baseUrl}}"], "path": ["api","dining-sessions"] }
           }
         },
         {
@@ -1044,26 +546,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/dining-sessions/{{diningSessionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dining-sessions",
-                "{{diningSessionId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/dining-sessions/{{diningSessionId}}", "host": ["{{baseUrl}}"], "path": ["api","dining-sessions","{{diningSessionId}}"] }
           }
         },
         {
@@ -1071,27 +557,10 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/dining-sessions/{{diningSessionId}}/close",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "dining-sessions",
-                "{{diningSessionId}}",
-                "close"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/dining-sessions/{{diningSessionId}}/close", "host": ["{{baseUrl}}"], "path": ["api","dining-sessions","{{diningSessionId}}","close"] }
           }
         }
       ]
@@ -1100,68 +569,41 @@
       "name": "Orders",
       "item": [
         {
-          "name": "Create DINE_IN Order (Cart → Checkout)",
+          "name": "Create DINE_IN Order (Cart to Checkout)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"diningSessionId\": \"{{diningSessionId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ],\n  \"notes\": \"No onions\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] },
+            "body": { "mode": "raw", "raw": "{\n  \"orderType\": \"DINE_IN\",\n  \"diningSessionId\": \"{{diningSessionId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ],\n  \"notes\": \"No onions\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.orderId) {\n  pm.collectionVariables.set('orderId', json.data.orderId);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.orderId) {",
+                  "  pm.collectionVariables.set('orderId', json.data.orderId);",
+                  "}"
+                ]
+              }
             }
           ]
         },
         {
-          "name": "Create TAKEAWAY Order (Cart → Checkout)",
+          "name": "Create TAKEAWAY Order (Cart to Checkout)",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] },
+            "body": { "mode": "raw", "raw": "{\n  \"orderType\": \"TAKEAWAY\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"quantity\": 2\n    }\n  ]\n}" }
           }
         },
         {
@@ -1169,25 +611,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
           }
         },
         {
@@ -1195,25 +622,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders", "host": ["{{baseUrl}}"], "path": ["api","orders"] }
           }
         },
         {
@@ -1221,24 +633,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/orders?status=pending",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders?status=pending"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","orders"],
+              "query": [ { "key": "status", "value": "pending" } ]
             }
           }
         },
@@ -1247,26 +649,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}"] }
           }
         },
         {
@@ -1274,27 +660,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}/cancel",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}",
-                "cancel"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}","cancel"] }
           }
         },
         {
@@ -1302,31 +671,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"confirmed\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"confirmed\"\n}" }
           }
         },
         {
@@ -1334,31 +683,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"preparing\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"preparing\"\n}" }
           }
         },
         {
@@ -1366,31 +695,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{kitchenToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{kitchenToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"ready\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"ready\"\n}" }
           }
         },
         {
@@ -1398,31 +707,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"served\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"served\"\n}" }
           }
         },
         {
@@ -1430,31 +719,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "orders",
-                "{{orderId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"completed\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/orders/{{orderId}}/status", "host": ["{{baseUrl}}"], "path": ["api","orders","{{orderId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\"\n}" }
           }
         }
       ]
@@ -1467,25 +736,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/notifications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api","notifications"] }
           }
         },
         {
@@ -1493,24 +747,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/notifications?isRead=false",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications?isRead=false"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","notifications"],
+              "query": [ { "key": "isRead", "value": "false" } ]
             }
           }
         },
@@ -1519,27 +763,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications",
-                "{{notificationId}}",
-                "read"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["api","notifications","{{notificationId}}","read"] }
           }
         },
         {
@@ -1547,26 +774,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/notifications/read-all",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications",
-                "read-all"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["api","notifications","read-all"] }
           }
         }
       ]
@@ -1579,33 +790,24 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/waiter-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "waiter-requests"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"CALL_WAITER\",\n  \"diningSessionId\": \"{{diningSessionId}}\",\n  \"message\": \"Need water please\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/waiter-requests", "host": ["{{baseUrl}}"], "path": ["api","waiter-requests"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"CALL_WAITER\",\n  \"diningSessionId\": \"{{diningSessionId}}\",\n  \"message\": \"Need water please\"\n}" }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.request && json.data.request.id) {\n  pm.collectionVariables.set('waiterRequestId', json.data.request.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.request && json.data.request.id) {",
+                  "  pm.collectionVariables.set('waiterRequestId', json.data.request.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1614,29 +816,11 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{customerToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/waiter-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "waiter-requests"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"REQUEST_BILL\",\n  \"diningSessionId\": \"{{diningSessionId}}\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/waiter-requests", "host": ["{{baseUrl}}"], "path": ["api","waiter-requests"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"REQUEST_BILL\",\n  \"diningSessionId\": \"{{diningSessionId}}\"\n}" }
           }
         },
         {
@@ -1644,24 +828,14 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/waiter-requests?status=pending",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "waiter-requests?status=pending"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api","waiter-requests"],
+              "query": [ { "key": "status", "value": "pending" } ]
             }
           }
         },
@@ -1670,31 +844,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/waiter-requests/{{waiterRequestId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "waiter-requests",
-                "{{waiterRequestId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"accepted\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/waiter-requests/{{waiterRequestId}}/status", "host": ["{{baseUrl}}"], "path": ["api","waiter-requests","{{waiterRequestId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"accepted\"\n}" }
           }
         },
         {
@@ -1702,31 +856,11 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/waiter-requests/{{waiterRequestId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "waiter-requests",
-                "{{waiterRequestId}}",
-                "status"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"completed\"\n}"
-            }
+            "url": { "raw": "{{baseUrl}}/api/waiter-requests/{{waiterRequestId}}/status", "host": ["{{baseUrl}}"], "path": ["api","waiter-requests","{{waiterRequestId}}","status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\"\n}" }
           }
         }
       ]
@@ -1739,31 +873,23 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/bills/dining-sessions/{{diningSessionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "bills",
-                "dining-sessions",
-                "{{diningSessionId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/bills/dining-sessions/{{diningSessionId}}", "host": ["{{baseUrl}}"], "path": ["api","bills","dining-sessions","{{diningSessionId}}"] }
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.bill && json.data.bill.id) {\n  pm.collectionVariables.set('billId', json.data.bill.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.bill && json.data.bill.id) {",
+                  "  pm.collectionVariables.set('billId', json.data.bill.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1772,26 +898,10 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/bills/{{billId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "bills",
-                "{{billId}}"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/bills/{{billId}}", "host": ["{{baseUrl}}"], "path": ["api","bills","{{billId}}"] }
           }
         },
         {
@@ -1799,27 +909,10 @@
           "request": {
             "method": "PATCH",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{waiterToken}}"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{waiterToken}}" }
             ],
-            "url": {
-              "raw": "{{baseUrl}}/api/bills/{{billId}}/pay",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "bills",
-                "{{billId}}",
-                "pay"
-              ]
-            }
+            "url": { "raw": "{{baseUrl}}/api/bills/{{billId}}/pay", "host": ["{{baseUrl}}"], "path": ["api","bills","{{billId}}","pay"] }
           }
         }
       ]
