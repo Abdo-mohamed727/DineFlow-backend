@@ -5,21 +5,39 @@ import { UnauthorizedError, ForbiddenError } from '../errors/AppError';
 import { ErrorCodes } from '../errors/errorCodes';
 import type { RegisterInput, LoginInput } from '../validators/auth.validator';
 import { ROLES, Role } from '../types';
+import { env } from '../config/env';
 
 export class AuthService {
   /**
-   * Customer self-registration. Per spec §3, registration is customer-only.
-   * Waiter/kitchen roles cannot be self-assigned - they are seeded via the
-   * secure seed script (or directly in the database).
+   * Public self-registration.
+   *
+   * Default behavior (production-safe): the user's role is ALWAYS forced to
+   * `customer`, regardless of what the client sends in the request body. This
+   * prevents public users from escalating privileges by sending
+   * `"role": "waiter"` or `"role": "kitchen"`.
+   *
+   * Development convenience: when `NODE_ENV === 'development'`, the role
+   * field IS trusted if the client provides one. This lets developers
+   * create waiter/kitchen accounts directly via Postman without running
+   * the seed script. It has NO effect in production — public users cannot
+   * escalate roles there. Do NOT deploy with NODE_ENV=development.
    */
   async register(input: RegisterInput) {
-    // Force the role to customer - we never trust the client for roles
+    // Determine the role for the new user.
+    // - In production: always customer (never trust the client).
+    // - In development: trust the client's role if provided; otherwise customer.
+    //   This is a dev-only convenience for creating staff accounts via Postman.
+    let role: Role = ROLES.CUSTOMER;
+    if (env.NODE_ENV === 'development' && input.role) {
+      role = input.role;
+    }
+
     const user = await userRepository.create({
       name: input.name,
       email: input.email,
       passwordHash: await hashPassword(input.password),
       phone: input.phone,
-      role: ROLES.CUSTOMER,
+      role,
     });
     const token = signToken(user.id, user.role as Role);
     return { user, token };

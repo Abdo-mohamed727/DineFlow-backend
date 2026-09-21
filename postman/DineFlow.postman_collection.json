@@ -109,7 +109,18 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('customerToken', json.data.token);\n  pm.collectionVariables.set('customerId', json.data.user.id);\n  console.log('Saved customerToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('customerToken', json.data.token);",
+                  "  pm.collectionVariables.set('customerId', json.data.user.id);",
+                  "  console.log('Saved customerToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -141,7 +152,18 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('customerToken', json.data.token);\n  pm.collectionVariables.set('customerId', json.data.user.id);\n  console.log('Saved customerToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('customerToken', json.data.token);",
+                  "  pm.collectionVariables.set('customerId', json.data.user.id);",
+                  "  console.log('Saved customerToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -173,7 +195,18 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('waiterToken', json.data.token);\n  pm.collectionVariables.set('waiterId', json.data.user.id);\n  console.log('Saved waiterToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('waiterToken', json.data.token);",
+                  "  pm.collectionVariables.set('waiterId', json.data.user.id);",
+                  "  console.log('Saved waiterToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -205,7 +238,18 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.token) {\n  pm.collectionVariables.set('kitchenToken', json.data.token);\n  pm.collectionVariables.set('kitchenId', json.data.user.id);\n  console.log('Saved kitchenToken');\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('kitchenToken', json.data.token);",
+                  "  pm.collectionVariables.set('kitchenId', json.data.user.id);",
+                  "  console.log('Saved kitchenToken');",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -447,7 +491,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.category && json.data.category.id) {\n  pm.collectionVariables.set('categoryId', json.data.category.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.category && json.data.category.id) {",
+                  "  pm.collectionVariables.set('categoryId', json.data.category.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -723,7 +776,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.product && json.data.product.id) {\n  pm.collectionVariables.set('productId', json.data.product.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.product && json.data.product.id) {",
+                  "  pm.collectionVariables.set('productId', json.data.product.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -911,7 +973,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.table && json.data.table.id) {\n  pm.collectionVariables.set('tableId', json.data.table.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.table && json.data.table.id) {",
+                  "  pm.collectionVariables.set('tableId', json.data.table.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1009,7 +1080,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.session && json.data.session.id) {\n  pm.collectionVariables.set('diningSessionId', json.data.session.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.session && json.data.session.id) {",
+                  "  pm.collectionVariables.set('diningSessionId', json.data.session.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1266,7 +1346,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.orderId) {\n  pm.collectionVariables.set('orderId', json.data.orderId);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.orderId) {",
+                  "  pm.collectionVariables.set('orderId', json.data.orderId);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1301,7 +1390,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.orderId) {\n  pm.collectionVariables.set('orderId', json.data.orderId);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.orderId) {",
+                  "  pm.collectionVariables.set('orderId', json.data.orderId);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1336,7 +1434,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.orderId) {\n  pm.collectionVariables.set('orderId', json.data.orderId);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.orderId) {",
+                  "  pm.collectionVariables.set('orderId', json.data.orderId);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1811,7 +1918,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.request && json.data.request.id) {\n  pm.collectionVariables.set('waiterRequestId', json.data.request.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.request && json.data.request.id) {",
+                  "  pm.collectionVariables.set('waiterRequestId', json.data.request.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
@@ -1969,7 +2085,16 @@
           },
           "event": [
             {
-              "test": "\nconst json = pm.response.json();\nif (json.data && json.data.bill && json.data.bill.id) {\n  pm.collectionVariables.set('billId', json.data.bill.id);\n}\n"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.bill && json.data.bill.id) {",
+                  "  pm.collectionVariables.set('billId', json.data.bill.id);",
+                  "}"
+                ]
+              }
             }
           ]
         },
