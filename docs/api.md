@@ -370,6 +370,141 @@ Errors: `409 SESSION_CLOSED`
 
 ---
 
+## Cart
+
+Cart endpoints are **customer-only**. The authenticated customer id is always taken from the JWT (`req.user.id`) — never from the request body. Each customer has exactly one cart (enforced by a unique index on `customerId`).
+
+The cart stores only `{ productId, quantity }`. Product price, name, image, and availability are read live from MongoDB on every request so the customer always sees current catalog data. Prices are never cached in the cart — they are snapshotted into the Order at checkout time.
+
+### GET /api/cart
+
+**Auth**: required
+**Role**: `customer`
+
+Returns the authenticated customer's cart. If the customer has no cart yet, returns an empty-cart shape (does NOT throw).
+
+Response (200):
+
+```json
+{
+  "success": true,
+  "message": "Cart retrieved successfully",
+  "data": {
+    "cart": {
+      "id": "65f2c4a8b3e1c8a12b7d0f99",
+      "items": [
+        {
+          "productId": "65f2c4a8b3e1c8a12b7d0f10",
+          "name": "Classic Beef Burger",
+          "price": 220,
+          "image": "https://res.cloudinary.com/...",
+          "isAvailable": true,
+          "quantity": 2,
+          "subtotal": 440
+        }
+      ],
+      "subtotal": 440,
+      "taxRate": 0.14,
+      "tax": 61.6,
+      "total": 501.6,
+      "itemCount": 2
+    }
+  }
+}
+```
+
+For a new customer with no cart:
+
+```json
+{
+  "success": true,
+  "message": "Cart retrieved successfully",
+  "data": {
+    "cart": {
+      "id": null,
+      "items": [],
+      "subtotal": 0,
+      "taxRate": 0,
+      "tax": 0,
+      "total": 0,
+      "itemCount": 0
+    }
+  }
+}
+```
+
+### POST /api/cart/items
+
+**Auth**: required
+**Role**: `customer`
+
+Adds a product to the cart. If the product is already in the cart, increments its quantity (does NOT create a duplicate item).
+
+Request:
+
+```json
+{
+  "productId": "65f2c4a8b3e1c8a12b7d0f10",
+  "quantity": 2
+}
+```
+
+The backend:
+1. Validates `productId` is a valid ObjectId.
+2. Validates `quantity` is an integer >= 1 (and <= 100).
+3. Verifies the product exists (`404 PRODUCT_NOT_FOUND` if not).
+4. Verifies the product `isAvailable === true` (`400 PRODUCT_UNAVAILABLE` if not).
+5. Creates the cart document if the customer doesn't have one yet.
+6. Adds the product, or increments its quantity if already in the cart.
+7. Returns the refreshed cart (with live product info + computed totals).
+
+The client must NOT send `unitPrice`, `price`, or `subtotal` — the schema is `.strict()`.
+
+Response (201): same shape as GET /api/cart, with the updated cart.
+
+Errors: `400 VALIDATION_ERROR`, `400 PRODUCT_UNAVAILABLE`, `404 PRODUCT_NOT_FOUND`, `401 UNAUTHORIZED`, `403 FORBIDDEN`
+
+### PATCH /api/cart/items/:productId
+
+**Auth**: required
+**Role**: `customer`
+
+Replaces the quantity of an existing cart item.
+
+Request:
+
+```json
+{
+  "quantity": 3
+}
+```
+
+Response (200): the updated cart.
+
+Errors: `400 VALIDATION_ERROR` (invalid quantity), `404 CART_ITEM_NOT_FOUND` (product not in cart), `401 UNAUTHORIZED`, `403 FORBIDDEN`
+
+### DELETE /api/cart/items/:productId
+
+**Auth**: required
+**Role**: `customer`
+
+Removes a product from the cart.
+
+Response (200): the updated cart.
+
+Errors: `404 CART_ITEM_NOT_FOUND` (product not in cart), `401 UNAUTHORIZED`, `403 FORBIDDEN`
+
+### DELETE /api/cart
+
+**Auth**: required
+**Role**: `customer`
+
+Clears all items from the cart. Idempotent — clearing an already-empty cart returns 200 with an empty cart.
+
+Response (200): the empty cart.
+
+---
+
 ## Orders
 
 ### POST /api/orders
@@ -377,7 +512,42 @@ Errors: `409 SESSION_CLOSED`
 **Auth**: required
 **Role**: `customer` or `waiter`
 
-> See also: [`docs/cart-checkout-flow.md`](./cart-checkout-flow.md) for the full Flutter cart → checkout contract including when to call `clearCart()`.
+> See also: [`docs/cart-checkout-flow.md`](./cart-checkout-flow.md) for the full Flutter cart → checkout contract.
+
+**Role-based request shapes — STRICT business rule:**
+
+| Role | Request shape | Source of items |
+|---|---|---|
+| **Customer** | `{ orderType, diningSessionId?, notes? }` — NO `items` field allowed | Server-side Cart |
+| **Waiter** | `{ orderType, diningSessionId?, items: [...], notes? }` — `items` REQUIRED | Request body |
+
+#### Customer flow — cart-driven checkout (recommended for Flutter)
+
+The customer does NOT send `items` in the request body. The schema is `.strict()`, so any `items` field is rejected with `400 VALIDATION_ERROR`. The backend reads the authenticated customer's cart, validates it is non-empty, snapshots the current catalog prices, creates the order, and **clears the cart automatically after the order is successfully created**.
+
+```json
+{
+  "orderType": "TAKEAWAY"
+}
+```
+
+For DINE_IN:
+
+```json
+{
+  "orderType": "DINE_IN",
+  "diningSessionId": "<sessionObjectId>",
+  "notes": "No onions"
+}
+```
+
+If the cart is empty, the backend returns `400 EMPTY_CART`. The cart is NOT cleared when order creation fails (validation error, unavailable product, closed session, etc.) — the customer can retry without re-adding items.
+
+> A customer sending `items` in the body is ALWAYS rejected with `400 VALIDATION_ERROR`. Customers must use `/api/cart/*` to manage their cart.
+
+#### Waiter flow — items-in-body
+
+Waiters do not have a cart. They MUST send `items` in the body directly:
 
 ```json
 {
@@ -401,21 +571,26 @@ For `TAKEAWAY`, omit `diningSessionId`:
 }
 ```
 
-The client must NOT send `unitPrice`, `subtotal`, `tax`, or `total` — the Zod schema is `.strict()` and will reject them. The backend is the single source of truth for all money fields.
+A waiter sending a request without `items` is rejected with `400 VALIDATION_ERROR`. The cart is NEVER touched for waiter-placed orders.
+
+The client must NOT send `unitPrice`, `subtotal`, `tax`, or `total` — both schemas are `.strict()` and will reject them. The backend is the single source of truth for all money fields.
 
 The backend:
 1. Extracts the authenticated customer from the JWT.
-2. Validates the request shape with Zod (items non-empty, valid ObjectIds, quantity >= 1, etc.).
-3. Fetches all requested products by `productId` from MongoDB in one round-trip.
-4. Verifies every product exists (`404 PRODUCT_NOT_FOUND` if not).
-5. Verifies every product `isAvailable === true` (`400 PRODUCT_UNAVAILABLE` if not).
-6. Reads the current `price` from MongoDB (never from the client).
-7. Snapshots `{ productId, productName, quantity, unitPrice, subtotal }` into each order item — so historical orders don't drift when the catalog changes.
-8. Computes `subtotal`, `tax` (= subtotal × `TAX_RATE`), and `total`.
-9. For `DINE_IN`: validates `diningSessionId` exists and `status === 'active'` (`400 SESSION_CLOSED` / `404 DINING_SESSION_NOT_FOUND`).
-10. Persists the order with `status: pending` and a sequential `orderNumber: ORD-NNNNNN`.
-11. Creates a notification for the customer ("Order received…").
-12. Returns 201 with the order plus convenience top-level fields.
+2. Picks the validator by role: `createCustomerOrderSchema` (no `items` allowed) for customer, `createWaiterOrderSchema` (`items` required) for waiter.
+3. Resolves the items: from the cart (customer) or from the body (waiter).
+4. Validates the request shape with Zod (valid ObjectIds, quantity >= 1, etc.).
+5. Fetches all requested products by `productId` from MongoDB in one round-trip.
+6. Verifies every product exists (`404 PRODUCT_NOT_FOUND` if not).
+7. Verifies every product `isAvailable === true` (`400 PRODUCT_UNAVAILABLE` if not).
+8. Reads the current `price` from MongoDB (never from the client).
+9. Snapshots `{ productId, productName, quantity, unitPrice, subtotal }` into each order item — so historical orders don't drift when the catalog changes.
+10. Computes `subtotal`, `tax` (= subtotal × `TAX_RATE`), and `total`.
+11. For `DINE_IN`: validates `diningSessionId` exists and `status === 'active'` (`400 SESSION_CLOSED` / `404 DINING_SESSION_NOT_FOUND`).
+12. Persists the order with `status: pending` and a sequential `orderNumber: ORD-NNNNNN`.
+13. Creates a notification for the customer ("Order received…").
+14. **If items came from the cart (customer), clears the cart.** Best-effort: if cart clearing fails, the order is still persisted (logged as a warning).
+15. Returns 201 with the order plus convenience top-level fields.
 
 Response (201):
 
@@ -460,7 +635,8 @@ Errors:
 
 | Status | `error`                       | When                                              |
 |--------|-------------------------------|---------------------------------------------------|
-| 400    | `VALIDATION_ERROR`            | Bad shape / empty items / invalid quantity / extra fields |
+| 400    | `VALIDATION_ERROR`            | Bad shape / invalid quantity / extra fields       |
+| 400    | `EMPTY_CART`                  | Customer omits `items` but their cart is empty    |
 | 400    | `PRODUCT_UNAVAILABLE`         | One of the products has `isAvailable = false`    |
 | 400    | `SESSION_CLOSED`              | DINE_IN against a closed dining session           |
 | 401    | `UNAUTHORIZED`                | Missing / invalid / expired JWT                    |
@@ -468,7 +644,7 @@ Errors:
 | 404    | `PRODUCT_NOT_FOUND`           | A productId doesn't exist                         |
 | 404    | `DINING_SESSION_NOT_FOUND`    | DINE_IN with a non-existing diningSessionId       |
 
-> In every error case **no order is persisted** — the client's cart can safely remain intact. Only call `clearCart()` after receiving a `201`.
+> In every error case **no order is persisted and the cart is NOT cleared** — the customer can safely retry. Only call `clearCart()` after receiving a `201`.
 
 ### GET /api/orders
 

@@ -61,19 +61,59 @@ describe('Auth', () => {
     });
 
     it('never allows self-registration as waiter or kitchen', async () => {
-      // Even if the client tries to send role, it must be ignored
+      // The schema accepts `role` for Flutter compatibility, but the service
+      // ALWAYS forces the created user to `customer`. A public user cannot
+      // escalate to waiter/kitchen by tampering with the request.
       const res = await request(app).post('/api/auth/register').send({
         name: 'Hacker',
         email: 'hacker@test.com',
         password: 'Password123!',
         role: 'waiter',
-      } as unknown as Record<string, unknown>);
-      // Zod strict() will reject the unknown field, but if we relax schema, register forces customer anyway
-      // Here strict() rejects so we get 400 - the customer is NEVER waiter
-      expect([400, 201]).toContain(res.status);
-      if (res.status === 201) {
-        expect(res.body.data.user.role).toBe('customer');
-      }
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.role).toBe('customer');
+    });
+
+    it('accepts role:"customer" in the request body (Flutter compatibility)', async () => {
+      // Reproduces the exact payload the Flutter app sends.
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'Abdo',
+        email: 'test@gmail.com',
+        password: '12345678',
+        phone: '01000000000',
+        role: 'customer',
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.user.role).toBe('customer');
+      expect(res.body.data.user.email).toBe('test@gmail.com');
+      expect(res.body.data.token).toMatch(/^[A-Za-z0-9-_.]+$/);
+      // Password hash must NOT be returned
+      expect(res.body.data.user.passwordHash).toBeUndefined();
+    });
+
+    it('forces role to customer even when role:"kitchen" is sent', async () => {
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'Kitchen Hacker',
+        email: 'kitchen-hacker@test.com',
+        password: 'Password123!',
+        role: 'kitchen',
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.data.user.role).toBe('customer');
+    });
+
+    it('still rejects truly unknown fields (strict mode preserved)', async () => {
+      // Schema stays .strict() — unrelated unknown keys are still rejected.
+      const res = await request(app).post('/api/auth/register').send({
+        name: 'Abuse',
+        email: 'abuse@test.com',
+        password: 'Password123!',
+        isAdmin: true,
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
     });
   });
 

@@ -156,46 +156,105 @@ class ProductService {
 
 ## 6. Creating an order
 
+### Cart-driven checkout (customer — required)
+
+DineFlow has a **server-side cart**. The Flutter app calls `/api/cart/*` to manage the cart, then calls `POST /api/orders` **without `items`** — the backend reads the cart, snapshots prices, creates the order, and clears the cart automatically.
+
+> **STRICT business rule**: A customer MUST NOT send `items` in the request body. The Zod schema (`createCustomerOrderSchema`) is `.strict()` and will reject any `items` field with `400 VALIDATION_ERROR`. Customers must use `/api/cart/*` to manage their cart.
+
+See [`docs/cart-checkout-flow.md`](./cart-checkout-flow.md) for the full flow.
+
+```dart
+// lib/api/cart_service.dart
+class CartService {
+  final dio = ApiClient().dio;
+
+  Future<Map<String, dynamic>> getCart() async {
+    final res = await dio.get('/cart');
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> addItem({
+    required String productId,
+    required int quantity,
+  }) async {
+    final res = await dio.post('/cart/items', data: {
+      'productId': productId,
+      'quantity': quantity,
+    });
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> updateItem({
+    required String productId,
+    required int quantity,
+  }) async {
+    final res = await dio.patch('/cart/items/$productId', data: {
+      'quantity': quantity,
+    });
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> removeItem(String productId) async {
+    final res = await dio.delete('/cart/items/$productId');
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> clearCart() async {
+    final res = await dio.delete('/cart');
+    return res.data['data']['cart'];
+  }
+}
+```
+
 ```dart
 // lib/api/order_service.dart
 class OrderService {
   final dio = ApiClient().dio;
 
-  /// Places a DINE_IN order.
-  Future<Map<String, dynamic>> placeDineInOrder({
-    required String diningSessionId,
+  /// Places an order from the customer's cart (customer-only flow).
+  /// The backend reads the cart, snapshots prices, creates the order,
+  /// and clears the cart on success.
+  ///
+  /// NOTE: This MUST NOT send `items` in the body — the backend will
+  /// reject the request with VALIDATION_ERROR if you do.
+  Future<Map<String, dynamic>> createOrderFromCart({
+    required String orderType,            // 'DINE_IN' or 'TAKEAWAY'
+    String? diningSessionId,
+    String? notes,
+  }) async {
+    final res = await dio.post('/orders', data: {
+      'orderType': orderType,
+      if (diningSessionId != null) 'diningSessionId': diningSessionId,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+      // NOTE: items MUST NOT be sent — backend reads from cart.
+    });
+    return res.data['data'];
+  }
+
+  /// Waiter-only flow — places an order with explicit items in the body.
+  /// Waiters do NOT have a cart.
+  Future<Map<String, dynamic>> placeOrderWithItems({
+    required String orderType,
     required List<Map<String, dynamic>> items, // [{ productId, quantity }]
+    String? diningSessionId,
     String? notes,
   }) async {
     final res = await dio.post('/orders', data: {
-      'type': 'DINE_IN',
-      'diningSessionId': diningSessionId,
+      'orderType': orderType,
+      if (diningSessionId != null) 'diningSessionId': diningSessionId,
       'items': items,
-      if (notes != null) 'notes': notes,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
     });
-    return res.data['data']['order'];
-  }
-
-  /// Places a TAKEAWAY order.
-  Future<Map<String, dynamic>> placeTakeawayOrder({
-    required List<Map<String, dynamic>> items,
-    String? notes,
-  }) async {
-    final res = await dio.post('/orders', data: {
-      'type': 'TAKEAWAY',
-      'items': items,
-      if (notes != null) 'notes': notes,
-    });
-    return res.data['data']['order'];
-  }
-
-  Future<void> cancelOrder(String orderId) async {
-    await dio.patch('/orders/$orderId/cancel');
+    return res.data['data'];
   }
 }
 ```
 
-> **IMPORTANT**: Do NOT include `unitPrice`, `subtotal`, or `total` in the items you send. The backend computes them. If you include them, Zod `strict()` will reject the request.
+> **IMPORTANT**:
+> - After `createOrderFromCart` returns 201, the cart is already cleared on the backend. You do NOT need to call `clearCart()` separately.
+> - A customer MUST NEVER send `items` in the body. If they do, the backend rejects with `400 VALIDATION_ERROR`.
+> - The waiter-only `placeOrderWithItems` flow does NOT touch any cart.
 
 ## 7. Error handling
 

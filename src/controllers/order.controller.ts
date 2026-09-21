@@ -7,13 +7,14 @@ export class OrderController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const input = req.body as CreateOrderInput;
-      const order = await orderService.create(input, req.user!.id);
+      // Pass the authenticated user's role so the service can decide:
+      //   - customer → read from cart if items not in body
+      //   - waiter → items must be in body
+      const order = await orderService.create(input, req.user!.id, req.user!.role);
       const orderJson = order.toJSON ? order.toJSON() : (order as unknown as Record<string, unknown>);
 
       // Return a convenience payload alongside the full `order` object so
       // Flutter can read the key fields without drilling into `order.*`.
-      // The Cart should only be cleared on the client side after this 201
-      // response is received.
       return sendSuccess(res, 'Order created successfully', {
         order,
         orderId: orderJson.id,

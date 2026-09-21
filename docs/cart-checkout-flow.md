@@ -1,74 +1,162 @@
 # Cart → Order Checkout Flow
 
-This document describes the contract for placing an order from a Flutter cart and exactly when the cart should be cleared on the client side.
+This document describes the cart feature and the checkout flow from a Flutter cart to a placed order.
 
 ## High-level flow
 
 ```
-Flutter Cart Screen
-        ↓  user taps "Place Order"
-Flutter sends POST /api/orders  (Bearer JWT)
+Flutter — browse products
+        ↓
+POST /api/cart/items              (add product to cart, or increment qty)
+        ↓
+GET  /api/cart                    (review cart, see live totals)
+        ↓
+PATCH /api/cart/items/:productId  (change quantity)
+DELETE /api/cart/items/:productId (remove an item)
+DELETE /api/cart                  (clear cart)
+        ↓
+user taps "Place Order"
+        ↓
+POST /api/orders                  (NO items in body — backend reads cart)
         ↓
 Express → Zod validates the request
         ↓
 OrderService.create()
-  • Fetches products from MongoDB
+  • Reads the authenticated customer's cart from MongoDB
+  • Validates the cart is non-empty (400 EMPTY_CART otherwise)
+  • Fetches products from MongoDB (current prices)
   • Verifies each exists + isAvailable
   • Snapshots productName + unitPrice at order time
   • Computes subtotal / tax / total (TAX_RATE)
   • For DINE_IN: validates diningSessionId is active
   • Persists the order with status = pending
   • Creates a notification for the customer
+  • Clears the cart on success
         ↓
 201 Created  →  { success, message, data: { order, orderId, items, subtotal, tax, total, status, orderType, createdAt } }
         ↓
 Flutter receives 201
         ↓
-Flutter calls clearCart()
-        ↓
 Flutter navigates to Order Details / Orders screen
+        ↓
+(cart is already cleared on the backend — no client-side clearCart() required)
 ```
 
-## The golden rule — clearCart() placement
+## Server-side cart vs client-side cart
 
-> `clearCart()` must be called **only after** the backend returns a successful `201` (or `200`) response.
+DineFlow now has a **server-side cart** stored in MongoDB (`Cart` collection). Each customer has exactly one cart (enforced by a unique index on `customerId`). The cart stores only `{ productId, quantity }` per item — never prices, names, or images. Those are always read live from the catalog when the customer views the cart, and snapshotted into the Order at checkout time.
+
+Why server-side?
+
+- The cart survives app reinstalls and device switches (the same customer logging in from a new phone sees their cart).
+- The cart is the single source of truth for checkout — the customer just taps "Place Order" and the backend handles everything.
+- Prices are validated and snapshotted at order time, so catalog changes between add-to-cart and checkout are correctly reflected.
+
+## The golden rule — cart clearing placement
+
+> The cart is cleared by the **backend** after a successful order creation. The Flutter client does NOT need to call `DELETE /api/cart` separately.
 
 ```dart
 try {
-  final response = await orderApi.createOrder(...); // Dio POST /api/orders
+  // Customer checkout: NO items in body — backend reads from cart.
+  final response = await orderApi.createOrder(
+    orderType: 'TAKEAWAY',
+    // items: NOT sent — backend uses the cart
+  );
 
-  // The Dio interceptor throws on non-2xx, so reaching this line means success.
-  // If you've disabled the throw-on-error behaviour, check explicitly:
-  //   if (response.statusCode! >= 200 && response.statusCode! < 300) { ... }
-
-  // ✅ Safe — backend has persisted the order
-  cartCubit.clearCart();
+  // ✅ Backend returned 201. Cart is already cleared server-side.
+  // No client-side clearCart() call needed.
 
   // Navigate to order details
   navigator.pushReplacement(OrderDetailsPage(orderId: response.data['data']['orderId']));
 } on DioException catch (e) {
-  // ❌ DO NOT clearCart() here.
-  // The order was NOT created on the backend. The cart must remain intact
-  // so the user can retry without re-adding everything.
+  // ❌ Order creation failed. Cart is INTACT on the backend.
+  // The customer can retry without re-adding items.
   showOrderFailedSnackBar(e);
 }
 ```
 
-When the cart must NOT be cleared:
+When the cart is NOT cleared (backend guarantees):
 
 - Network failure / timeout
-- `400` VALIDATION_ERROR (empty items, invalid productId, invalid quantity)
+- `400` VALIDATION_ERROR
+- `400` EMPTY_CART (cart is already empty — nothing to clear)
 - `400` PRODUCT_UNAVAILABLE
 - `400` SESSION_CLOSED (dining session is not active)
 - `401` UNAUTHORIZED (token expired)
 - `403` FORBIDDEN (wrong role)
 - `404` PRODUCT_NOT_FOUND / DINING_SESSION_NOT_FOUND
 - `500` INTERNAL_ERROR
-- Any other DioException
+- Any other error
 
-In all of the above cases, the cart must remain **exactly as the user left it** so they can retry.
+In all of the above cases, the cart remains **exactly as the user left it** so they can retry.
 
-## API contract
+## API contract — Cart endpoints
+
+All cart endpoints require `Authorization: Bearer {{customerToken}}` and the `customer` role.
+
+### GET /api/cart
+
+Returns the cart (empty shape if none exists). Product info (name, price, image, isAvailable) is populated live.
+
+```json
+{
+  "success": true,
+  "message": "Cart retrieved successfully",
+  "data": {
+    "cart": {
+      "id": "...",
+      "items": [
+        {
+          "productId": "...",
+          "name": "Classic Beef Burger",
+          "price": 220,
+          "image": "https://res.cloudinary.com/...",
+          "isAvailable": true,
+          "quantity": 2,
+          "subtotal": 440
+        }
+      ],
+      "subtotal": 440,
+      "taxRate": 0.14,
+      "tax": 61.6,
+      "total": 501.6,
+      "itemCount": 2
+    }
+  }
+}
+```
+
+### POST /api/cart/items
+
+```json
+{
+  "productId": "{{productId}}",
+  "quantity": 2
+}
+```
+
+If the product is already in the cart, increments its quantity. Returns the updated cart (201).
+
+### PATCH /api/cart/items/:productId
+
+```json
+{
+  "quantity": 3
+}
+```
+
+Replaces the quantity. Returns the updated cart (200).
+
+### DELETE /api/cart/items/:productId
+
+Removes the product from the cart. Returns the updated cart (200).
+
+### DELETE /api/cart
+
+Clears all items from the cart. Returns the empty cart (200). Idempotent.
+
+## API contract — Order creation
 
 ### Endpoint
 
@@ -80,23 +168,40 @@ In all of the above cases, the cart must remain **exactly as the user left it** 
 Authorization: Bearer {{customerToken}}
 ```
 
-Only `customer` (and `waiter` on behalf of a customer) can place orders.
+Only `customer` (cart-driven) and `waiter` (items-in-body) can place orders.
 
-### Request body — DINE_IN
+### Role-based request shapes — STRICT business rule
+
+| Role | Request shape | Source of items |
+|---|---|---|
+| **Customer** | `{ orderType, diningSessionId?, notes? }` — NO `items` field allowed | Server-side Cart |
+| **Waiter** | `{ orderType, diningSessionId?, items: [...], notes? }` — `items` REQUIRED | Request body |
+
+### Request body — Cart-driven checkout (customer)
+
+The customer does NOT send `items` — the backend reads the authenticated customer's cart.
+
+```json
+{
+  "orderType": "TAKEAWAY"
+}
+```
+
+For DINE_IN:
 
 ```json
 {
   "orderType": "DINE_IN",
   "diningSessionId": "65f2c4a8b3e1c8a12b7d0f01",
-  "items": [
-    { "productId": "65f2c4a8b3e1c8a12b7d0f10", "quantity": 2 },
-    { "productId": "65f2c4a8b3e1c8a12b7d0f11", "quantity": 1 }
-  ],
   "notes": "No onions"
 }
 ```
 
-### Request body — TAKEAWAY
+> A customer sending `items` in the body is ALWAYS rejected with `400 VALIDATION_ERROR`. Customers must use `/api/cart/*` to manage their cart.
+
+### Request body — Items-in-body (waiter only)
+
+Waiters create orders on behalf of customers and do NOT use the cart. They send `items` directly:
 
 ```json
 {
@@ -107,7 +212,7 @@ Only `customer` (and `waiter` on behalf of a customer) can place orders.
 }
 ```
 
-> `diningSessionId` is **optional** for TAKEAWAY and **required** for DINE_IN.
+> A waiter sending a request without `items` is rejected with `400 VALIDATION_ERROR`. The cart is NEVER touched for waiter-placed orders.
 
 ### What the client MUST NOT send
 
@@ -121,6 +226,7 @@ The following fields are **never** accepted — the backend is the source of tru
 - `status`
 - `orderNumber`
 - `customerId`
+- `items` (for customer role — must use cart instead)
 
 The Zod schema uses `.strict()`, so sending any of these will return `400 VALIDATION_ERROR`.
 
@@ -175,13 +281,14 @@ The Zod schema uses `.strict()`, so sending any of these will return `400 VALIDA
 }
 ```
 
-The top-level convenience fields (`orderId`, `orderType`, `items`, `subtotal`, `tax`, `total`, `status`, `createdAt`) mirror the same values inside `order` — they exist so Flutter doesn't have to drill into `order.*` for the common case (e.g. showing an "Order placed!" toast with the totals).
+The top-level convenience fields (`orderId`, `orderType`, `items`, `subtotal`, `tax`, `total`, `status`, `createdAt`) mirror the same values inside `order` — they exist so Flutter doesn't have to drill into `order.*` for the common case.
 
 ### Errors
 
 | Status | `error`                    | When                                                  |
 |--------|----------------------------|-------------------------------------------------------|
-| 400    | `VALIDATION_ERROR`         | Bad shape / empty items / invalid quantity / extra fields |
+| 400    | `VALIDATION_ERROR`         | Bad shape / invalid quantity / extra fields           |
+| 400    | `EMPTY_CART`                | Customer omits `items` but their cart is empty        |
 | 400    | `PRODUCT_UNAVAILABLE`      | One of the products has `isAvailable = false`        |
 | 400    | `SESSION_CLOSED`           | DINE_IN against a closed dining session              |
 | 401    | `UNAUTHORIZED`             | Missing / invalid / expired JWT                       |
@@ -190,11 +297,9 @@ The top-level convenience fields (`orderId`, `orderType`, `items`, `subtotal`, `
 | 404    | `DINING_SESSION_NOT_FOUND` | A diningSessionId doesn't exist                     |
 | 500    | `INTERNAL_ERROR`           | Unexpected server failure                             |
 
-In every error case, **no order is persisted** — the database state is unchanged. The client can safely keep the cart and retry.
+In every error case, **no order is persisted and the cart is NOT cleared** — the client can safely retry.
 
 ## Flutter implementation reference
-
-> DineFlow has no `cart` collection on the backend by design. The cart is a **client-side** state living in Flutter (Cubit / Bloc / Riverpod / Provider — your choice). The backend never knows about the cart; it only sees the final `items` array on `POST /api/orders`.
 
 ### Recommended Flutter structure
 
@@ -202,10 +307,11 @@ In every error case, **no order is persisted** — the database state is unchang
 lib/
 ├── features/
 │   ├── cart/
-│   │   ├── cubit/cart_cubit.dart        # holds CartState (List<CartItem>)
+│   │   ├── datasources/cart_remote_data_source.dart
+│   │   ├── cubit/cart_cubit.dart
 │   │   ├── cubit/cart_state.dart
-│   │   ├── models/cart_item.dart        # { productId, name, price, image, quantity }
-│   │   └── views/cart_screen.dart       # "Place Order" button
+│   │   ├── models/cart_item.dart
+│   │   └── views/cart_screen.dart
 │   └── orders/
 │       ├── datasources/order_remote_data_source.dart
 │       ├── repositories/order_repository.dart
@@ -213,7 +319,55 @@ lib/
 │       └── views/order_details_screen.dart
 ```
 
-### Dio call — `OrderRemoteDataSource`
+### Dio — CartRemoteDataSource
+
+```dart
+// lib/features/cart/datasources/cart_remote_data_source.dart
+import 'package:dio/dio.dart';
+import '../../api/api_client.dart';
+
+class CartRemoteDataSource {
+  final Dio _dio = ApiClient().dio;
+
+  Future<Map<String, dynamic>> getCart() async {
+    final res = await _dio.get('/cart');
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> addItem({
+    required String productId,
+    required int quantity,
+  }) async {
+    final res = await _dio.post('/cart/items', data: {
+      'productId': productId,
+      'quantity': quantity,
+    });
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> updateItem({
+    required String productId,
+    required int quantity,
+  }) async {
+    final res = await _dio.patch('/cart/items/$productId', data: {
+      'quantity': quantity,
+    });
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> removeItem(String productId) async {
+    final res = await _dio.delete('/cart/items/$productId');
+    return res.data['data']['cart'];
+  }
+
+  Future<Map<String, dynamic>> clearCart() async {
+    final res = await _dio.delete('/cart');
+    return res.data['data']['cart'];
+  }
+}
+```
+
+### Dio — OrderRemoteDataSource (cart-driven checkout)
 
 ```dart
 // lib/features/orders/datasources/order_remote_data_source.dart
@@ -223,20 +377,21 @@ import '../../api/api_client.dart';
 class OrderRemoteDataSource {
   final Dio _dio = ApiClient().dio;
 
-  Future<Map<String, dynamic>> createOrder({
+  /// Places an order from the customer's cart.
+  /// The backend reads the cart, snapshots prices, creates the order,
+  /// and clears the cart on success.
+  Future<Map<String, dynamic>> createOrderFromCart({
     required String orderType,            // 'DINE_IN' or 'TAKEAWAY'
-    required List<Map<String, dynamic>> items, // [{ productId, quantity }]
     String? diningSessionId,
     String? notes,
   }) async {
     final res = await _dio.post('/orders', data: {
       'orderType': orderType,
       if (diningSessionId != null) 'diningSessionId': diningSessionId,
-      'items': items,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
+      // NOTE: items are NOT sent — backend reads from cart.
     });
-    // Dio throws DioException on non-2xx by default; if we reach here, success.
-    return res.data['data'] as Map<String, dynamic>;
+    return res.data['data'];
   }
 }
 ```
@@ -253,39 +408,25 @@ Future<void> placeOrder({
   emit(CartSubmitting());
 
   try {
-    // 1. Build items payload from current cart state (productId + quantity ONLY).
-    final items = state.items.map((ci) => {
-      'productId': ci.productId,
-      'quantity': ci.quantity,
-    }).toList();
-
-    if (items.isEmpty) {
-      emit(const CartError('Cart is empty'));
-      return;
-    }
-
-    // 2. Call the backend.
-    final data = await orderRemoteDataSource.createOrder(
+    final data = await orderRemoteDataSource.createOrderFromCart(
       orderType: orderType,
-      items: items,
       diningSessionId: diningSessionId,
       notes: notes,
     );
 
-    // 3. ✅ Backend returned 201. Safe to clear the cart now.
-    clearCart();
+    // ✅ Backend returned 201. Cart is ALREADY cleared on the backend.
+    // Refresh local cart state by re-fetching (will be empty).
+    await refreshCart();
 
-    // 4. Hand off to navigation layer (e.g. via emitted state).
     emit(CartOrderPlaced(
       orderId: data['orderId'] as String,
       total: (data['total'] as num).toDouble(),
     ));
   } on DioException catch (e) {
-    // ❌ DO NOT clearCart() here. Cart stays intact for retry.
+    // ❌ Order creation failed. Cart is INTACT on the backend.
     final message = e.response?.data?['message'] ?? 'Order failed. Please try again.';
     emit(CartError(message));
   } catch (e) {
-    // ❌ Unknown failure. Cart still intact.
     emit(CartError('Unexpected error. Please try again.'));
   }
 }
@@ -325,30 +466,49 @@ BlocListener<CartCubit, CartState>(
 ),
 ```
 
-## Why the cart lives in Flutter (not MongoDB)
-
-- Carts are **ephemeral** — they're rarely worth persisting across devices.
-- The backend's `POST /api/orders` already validates every product and price, so persisting the cart would be redundant work.
-- A server-side cart adds a collection, endpoints, race conditions, and another failure mode for the checkout — none of which actually improve the UX for a single-device ordering app.
-
-If you later need cross-device cart sync (e.g. customer starts an order on web, finishes on mobile), you can add a `carts` collection then. Until that requirement exists, keep it client-side.
-
 ## Test cases covered
 
-The backend test suite (`tests/orders.test.ts`) explicitly covers:
+The backend test suite explicitly covers:
 
-1. ✅ TAKEAWAY order created successfully
-2. ✅ DINE_IN order created successfully
-3. ✅ Empty items array → 400
-4. ✅ Invalid productId format → 400
-5. ✅ Non-existent productId → 400 PRODUCT_NOT_FOUND
-6. ✅ Unavailable product → 400 PRODUCT_UNAVAILABLE
-7. ✅ Invalid (negative) quantity → 400
-8. ✅ Unauthorized (no JWT) → 401
-9. ✅ Non-existing diningSessionId → 404
-9b. ✅ DINE_IN without diningSessionId → 400
-9c. ✅ DINE_IN against a closed session → 400 SESSION_CLOSED
-10. ✅ Client-supplied price fields are rejected (strict schema)
-11. ✅ Total = subtotal + (subtotal × TAX_RATE) verified numerically
-12. ✅ On failure, no order is persisted (cart can stay intact)
-13. ✅ On success, exactly one order is persisted (cart safe to clear)
+### Cart endpoints (`tests/cart.test.ts`)
+
+1. ✅ GET /api/cart — empty cart for new customer
+2. ✅ GET /api/cart — populated cart after items added
+3. ✅ GET /api/cart — unauthenticated (401)
+4. ✅ GET /api/cart — non-customer role (403)
+5. ✅ POST /api/cart/items — add new product (201)
+6. ✅ POST /api/cart/items — add same product twice (increments, no duplicate)
+7. ✅ POST /api/cart/items — invalid productId format (400 VALIDATION_ERROR)
+8. ✅ POST /api/cart/items — non-existent productId (404 PRODUCT_NOT_FOUND)
+9. ✅ POST /api/cart/items — unavailable product (400 PRODUCT_UNAVAILABLE)
+10. ✅ POST /api/cart/items — invalid quantity (0, -1, 1.5, 'abc')
+11. ✅ POST /api/cart/items — unauthenticated (401)
+12. ✅ POST /api/cart/items — waiter role (403)
+13. ✅ POST /api/cart/items — kitchen role (403)
+14. ✅ PATCH /api/cart/items/:productId — update existing item
+15. ✅ PATCH /api/cart/items/:productId — invalid quantity
+16. ✅ PATCH /api/cart/items/:productId — item not in cart (404 CART_ITEM_NOT_FOUND)
+17. ✅ PATCH /api/cart/items/:productId — unauthenticated (401)
+18. ✅ DELETE /api/cart/items/:productId — remove existing item
+19. ✅ DELETE /api/cart/items/:productId — item not in cart (404)
+20. ✅ DELETE /api/cart/items/:productId — unauthenticated (401)
+21. ✅ DELETE /api/cart — clear cart
+22. ✅ DELETE /api/cart — clear already-empty cart (idempotent)
+23. ✅ DELETE /api/cart — unauthenticated (401)
+24. ✅ Cart isolation — customer A cannot see customer B's cart
+25. ✅ Cart isolation — customer A cannot update customer B's cart item
+
+### Cart → Order integration (`tests/cart.test.ts` + `tests/orders.test.ts`)
+
+26. ✅ Order created from cart (no items in body) + cart cleared after
+27. ✅ Empty cart rejected (400 EMPTY_CART)
+28. ✅ Cart NOT cleared when order creation fails (unavailable product)
+29. ✅ **Customer sending `items` in body → rejected (400 VALIDATION_ERROR)**
+30. ✅ Waiter can place order with items in body (no cart required)
+31. ✅ Waiter cannot place order without items in body (400 VALIDATION_ERROR)
+32. ✅ Cart cleared after successful customer checkout
+33. ✅ Cart NOT cleared if order creation fails
+
+### Existing order lifecycle tests (`tests/orders.test.ts`)
+
+All existing order lifecycle tests (status transitions, customer cancellation, role-based authorization) still pass — they now use the cart-driven flow for customer-created orders and items-in-body for waiter-created orders.

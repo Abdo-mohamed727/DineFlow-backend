@@ -27,6 +27,11 @@ export const ErrorCodes = {
   NOTIFICATION_NOT_FOUND: 'NOTIFICATION_NOT_FOUND',
   BILL_NOT_FOUND: 'BILL_NOT_FOUND',
 
+  // Cart
+  CART_NOT_FOUND: 'CART_NOT_FOUND',
+  CART_ITEM_NOT_FOUND: 'CART_ITEM_NOT_FOUND',
+  EMPTY_CART: 'EMPTY_CART',
+
   // Conflict / state
   DUPLICATE_EMAIL: 'DUPLICATE_EMAIL',
   INVALID_STATUS_TRANSITION: 'INVALID_STATUS_TRANSITION',
@@ -39,4 +44,4 @@ export const ErrorCodes = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 } as const;
 
-export type ErrorCode = keyof typeof ErrorCodes | (typeof ErrorCodes)[keyof typeof ErrorCodes];
+export type ErrorCode = keyof typeof ErrorCodes | (typeof ErrorCodes)[keyof typeof ErrorCodes]

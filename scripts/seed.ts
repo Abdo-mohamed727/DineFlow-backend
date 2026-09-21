@@ -27,7 +27,7 @@
  *   product slug (e.g. `dineflow/products/caesar-salad`). Combined with
  *   `overwrite: true` and `unique_filename: false`, this means re-running
  *   `npm run seed` overwrites the same Cloudinary asset instead of creating
- *   duplicates.
+ *   duplicates. (Behavior is implemented in `src/services/cloudinary.service.ts`.)
  *
  *   If Cloudinary credentials are not configured in `.env`, image upload is
  *   skipped entirely (with a clear warning) and products are created with an
@@ -63,6 +63,10 @@ const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
 
 /**
  * Build a URL-safe slug from a product name.
+ * Examples:
+ *   "Cream of Mushroom Soup" → "cream-of-mushroom-soup"
+ *   "Double Cheese Burger"    → "double-cheese-burger"
+ *   "New York Cheesecake"     → "new-york-cheesecake"
  */
 function slugify(name: string): string {
   return name
@@ -74,7 +78,7 @@ function slugify(name: string): string {
 
 /**
  * List image files in the seed-assets/products directory.
- * Returns an empty array if the directory does not exist.
+ * Returns an empty array if the directory does not exist (so seeding still works).
  */
 async function listImageFiles(dir: string): Promise<string[]> {
   try {
@@ -94,7 +98,11 @@ async function listImageFiles(dir: string): Promise<string[]> {
 
 /**
  * Resolve a target filename against the files actually present on disk,
- * using a CASE-INSENSITIVE comparison.
+ * using a CASE-INSENSITIVE comparison. Filenames in `productImageMap` may be
+ * written with any casing (e.g. `Coffee.jpg` matches `coffee.JPG`).
+ *
+ * Returns the on-disk filename (preserving its actual casing) if found,
+ * or null otherwise.
  */
 function resolveFileCaseInsensitive(onDiskFiles: string[], target: string): string | null {
   const targetLower = target.toLowerCase();
@@ -108,7 +116,16 @@ function resolveFileCaseInsensitive(onDiskFiles: string[], target: string): stri
 
 /**
  * Explicit product-name → image-filename mapping.
- * Each key MUST exactly match a `name` in `seedProducts` below.
+ *
+ * Each key MUST exactly match a `name` in `seedProducts` below. Each value is
+ * the image file expected to exist in `seed-assets/products/`. Filenames are
+ * matched case-insensitively against the directory contents, so `Coffee.jpg`
+ * will still be found if the actual file is `coffee.JPG`.
+ *
+ * Products not present in this map are created WITHOUT an image (image: '')
+ * and a clear warning is logged. This is intentional: we never silently
+ * substitute a generic/placeholder image because that would be misleading
+ * to customers browsing the menu.
  */
 const productImageMap: Record<string, string> = {
   'Classic Beef Burger':  'Classic Burger.jpg',
@@ -224,6 +241,7 @@ async function seed() {
   // eslint-disable-next-line no-console
   console.log('🍔 Creating products...');
 
+  // Discover available product image files ONCE (case-insensitive lookups below).
   const onDiskFiles = await listImageFiles(SEED_ASSETS_PRODUCTS_DIR);
 
   if (onDiskFiles.length === 0) {
@@ -245,6 +263,9 @@ async function seed() {
     console.warn('      CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET to enable image hosting.');
   }
 
+  // Sequential loop (not Promise.all) so the console logs are readable.
+  // Each Cloudinary upload is independent; doing them in parallel would
+  // interleave logs and make debugging harder.
   const productDocs = [];
   let withImageCount = 0;
   let withoutImageCount = 0;
@@ -256,14 +277,17 @@ async function seed() {
     const expectedFile = productImageMap[p.name];
 
     if (!expectedFile) {
+      // Product is intentionally not in the image map.
       // eslint-disable-next-line no-console
       console.warn(`   ⏭️  No image mapping for product "${p.name}" - creating without image`);
       withoutImageCount++;
     } else if (onDiskFiles.length === 0) {
+      // seed-assets/products/ directory is empty/missing.
       // eslint-disable-next-line no-console
       console.warn(`   ⏭️  Skipping image for "${p.name}" - seed-assets/products/ is empty`);
       withoutImageCount++;
     } else if (!cloudinaryConfigured) {
+      // Cloudinary creds missing - we already warned above; just skip the upload.
       withoutImageCount++;
     } else {
       const onDiskName = resolveFileCaseInsensitive(onDiskFiles, expectedFile);
@@ -289,6 +313,7 @@ async function seed() {
           // eslint-disable-next-line no-console
           console.log(`   ✅ Uploaded: ${image}`);
         } catch (err) {
+          // Don't fail the whole seed for one image upload error.
           // eslint-disable-next-line no-console
           console.warn(`   ⚠️  Failed to upload image for "${p.name}" (${onDiskName}): ${(err as Error).message}`);
           withoutImageCount++;
