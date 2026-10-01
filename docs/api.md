@@ -740,6 +740,92 @@ Errors: `403 FORBIDDEN`, `404 NOTIFICATION_NOT_FOUND`
 
 Marks all of the user's notifications as read. Returns `{ modifiedCount }`.
 
+### POST /api/notifications/device-token
+
+**Auth**: required
+**Role**: any
+
+Registers an FCM (Firebase Cloud Messaging) device token for the authenticated user. The user id is taken from the JWT — never from the request body. A user may have multiple tokens (phone, tablet, web). Idempotent: registering the same token twice is a no-op.
+
+The Flutter app should call this endpoint after obtaining an FCM token from `FirebaseMessaging.instance.getToken()` (or `onTokenRefresh`) so the backend can send push notifications when order statuses change.
+
+Request:
+
+```json
+{
+  "token": "<FCM_DEVICE_TOKEN>"
+}
+```
+
+Response (200):
+
+```json
+{
+  "success": true,
+  "message": "Device token registered successfully",
+  "data": {
+    "deviceTokens": ["<FCM_DEVICE_TOKEN>", "...otherTokens..."]
+  }
+}
+```
+
+Errors: `400 VALIDATION_ERROR` (token too short / missing), `401 UNAUTHORIZED`
+
+### DELETE /api/notifications/device-token
+
+**Auth**: required
+**Role**: any
+
+Removes an FCM device token from the authenticated user. Typically called by the Flutter app on logout so the device stops receiving push notifications. Idempotent — removing a non-existent token is a no-op.
+
+Request body (same shape as POST):
+
+```json
+{
+  "token": "<FCM_DEVICE_TOKEN>"
+}
+```
+
+Response (200):
+
+```json
+{
+  "success": true,
+  "message": "Device token removed successfully",
+  "data": {
+    "deviceTokens": ["...remainingTokens..."]
+  }
+}
+```
+
+### How order status changes trigger push notifications
+
+When a staff member (kitchen or waiter) successfully changes an order's status via `PATCH /api/orders/:id/status`:
+
+1. The order is updated in MongoDB.
+2. If the status actually changed (`oldStatus !== newStatus`), a notification is persisted in MongoDB with `type: 'ORDER_UPDATE'` and `data: { orderId, status, tag }`.
+3. The backend looks up the customer's registered FCM device tokens.
+4. If the customer has tokens, an FCM push is dispatched (best-effort — never fails the order update).
+5. If FCM reports any tokens as invalid/unregistered, they are automatically removed from the user's record.
+6. If FCM is not configured (`FIREBASE_SERVICE_ACCOUNT` env var unset), step 4-5 are skipped — the notification is still visible via `GET /api/notifications`.
+
+The FCM push payload includes:
+
+```json
+{
+  "notification": { "title": "Order status updated", "body": "Your order ORD-000001 is now \"confirmed\"." },
+  "data": {
+    "notificationId": "...",
+    "orderId": "...",
+    "status": "confirmed",
+    "type": "ORDER_UPDATE",
+    "clickAction": "ORDER_STATUS_CHANGED"
+  }
+}
+```
+
+The Flutter app can use the `data.clickAction` and `data.orderId` fields to deep-link to the order details screen when the user taps the notification.
+
 ---
 
 ## Waiter Requests

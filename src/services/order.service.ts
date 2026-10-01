@@ -2,6 +2,7 @@ import { orderRepository } from '../repositories/order.repository';
 import { productRepository } from '../repositories/product.repository';
 import { diningSessionRepository } from '../repositories/diningSession.repository';
 import { notificationRepository } from '../repositories/notification.repository';
+import { notificationService } from './notification.service';
 import { cartRepository } from '../repositories/cart.repository';
 import { calculateTotals } from '../utils/pricing';
 import {
@@ -220,6 +221,14 @@ export class OrderService {
   /**
    * Status transition driven by staff (kitchen / waiter). The role permitted
    * to perform each transition is enforced by STATUS_ROLE_MATRIX.
+   *
+   * Side effects:
+   *   - If the status actually changed (`oldStatus !== newStatus`), a
+   *     notification is persisted and an FCM push is dispatched to the
+   *     customer who owns the order (best-effort — never fails the order).
+   *   - If the status did NOT change (e.g. idempotent retry with the same
+   *     status value), no notification is created and no FCM push is sent.
+   *     This prevents duplicate notifications.
    */
   async updateStatus(orderId: string, input: UpdateOrderStatusInput, role: Role) {
     const order = await orderRepository.findByIdRaw(orderId);
@@ -233,16 +242,25 @@ export class OrderService {
       );
     }
 
+    const oldStatus = order.status as OrderStatus;
     const updated = await orderRepository.updateStatus(orderId, target);
 
-    // Notify customer
-    await notificationRepository.create({
-      userId: order.customerId.toString(),
-      title: 'Order status updated',
-      message: `Your order ${order.orderNumber} is now "${target}".`,
-      type: 'ORDER_UPDATE',
-      data: { orderId: order.id, status: target },
-    });
+    // Only notify when the status actually changed. This guard prevents
+    // duplicate notifications if the same status is sent twice (idempotent
+    // retry, network blip, etc.). Note: `assertTransition` already throws
+    // when current === target, so in practice we never reach this line
+    // with oldStatus === newStatus — but the guard is defensive.
+    if (oldStatus !== target) {
+      // notifyOrderStatusChanged persists the notification AND dispatches
+      // FCM. It never throws on FCM failure (best-effort), so the order
+      // status update remains successful regardless of push outcome.
+      await notificationService.notifyOrderStatusChanged({
+        userId: order.customerId.toString(),
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        newStatus: target,
+      });
+    }
 
     return updated;
   }

@@ -10,6 +10,15 @@ export interface IUser extends Document {
   role: Role;
   profileImage?: string;
   profileImagePublicId?: string;
+  /**
+   * FCM device tokens registered by this user. A single user may have
+   * multiple tokens (e.g. signed in on phone + tablet). Push notifications
+   * are sent to ALL of them — FCM handles deduplication.
+   *
+   * Tokens are added via POST /api/notifications/device-token and removed
+   * via DELETE /api/notifications/device-token (typically called on logout).
+   */
+  deviceTokens?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +44,7 @@ const userSchema = new Schema<IUser>(
     },
     profileImage: { type: String, default: '' },
     profileImagePublicId: { type: String, default: '' },
+    deviceTokens: { type: [String], default: [] },
   },
   { timestamps: true },
 );
