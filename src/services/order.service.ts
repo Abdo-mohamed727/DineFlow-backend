@@ -169,6 +169,24 @@ export class OrderService {
       data: { orderId: order.id, status: ORDER_STATUS.PENDING },
     });
 
+    // Notify ALL kitchen users that a new order has been placed.
+    // This is a best-effort, fire-and-forget notification: FCM failures are
+    // logged but never cause the order creation to fail. The order is
+    // already persisted at this point.
+    try {
+      await notificationService.notifyKitchenNewOrder({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status as string,
+      });
+    } catch (err) {
+      // Defensive: notifyKitchenNewOrder itself never throws on FCM errors,
+      // but if something unexpected happens (e.g. DB query for kitchen users
+      // fails), we log and continue — the order is already created.
+      // eslint-disable-next-line no-console
+      console.warn(`Failed to notify kitchen of new order ${order.id}:`, (err as Error).message);
+    }
+
     // Cart clearing: ONLY when items came from the cart AND the order was
     // successfully created. If order creation threw above, we never reach
     // this line — the cart stays intact for retry.

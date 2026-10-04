@@ -362,4 +362,182 @@ describe('FCM Push Notifications', () => {
       expect(res.body.data.order.status).toBe('confirmed');
     });
   });
+
+  /* ====================================================================== */
+  /* POST /api/orders → Customer places order → Kitchen notified           */
+  /* ====================================================================== */
+  describe('POST /api/orders → Customer → Kitchen notification', () => {
+    it('1. customer places order → kitchen user receives a MongoDB notification', async () => {
+      const orderId = await createOrderFromCart();
+
+      // The seeded kitchen user should have received a "New Order" notification.
+      const kitchenNotifs = await NotificationModel.find({
+        userId: fixtures.kitchen._id,
+        title: 'New Order',
+      }).sort({ createdAt: -1 });
+      expect(kitchenNotifs.length).toBeGreaterThan(0);
+
+      const latest = kitchenNotifs[0];
+      expect(latest.type).toBe('ORDER_UPDATE');
+      expect(latest.message).toContain('New order');
+      expect(latest.data?.orderId).toBe(orderId);
+      expect(latest.data?.orderNumber).toBeTruthy();
+      expect(latest.data?.status).toBe('pending');
+      expect(latest.data?.type).toBe('NEW_ORDER');
+      expect(latest.data?.clickAction).toBe('NEW_ORDER');
+    });
+
+    it('2. multiple kitchen users each receive their own notification', async () => {
+      // Create a SECOND kitchen user.
+      const { UserModel } = await import('../src/models/user.model');
+      const { hashPassword } = await import('../src/utils/password');
+      const { ROLES } = await import('../src/types');
+      const kitchen2 = await UserModel.create({
+        name: 'Second Kitchen',
+        email: 'kitchen2@test.com',
+        passwordHash: await hashPassword('Password123!'),
+        role: ROLES.KITCHEN,
+      });
+
+      await createOrderFromCart();
+
+      // BOTH kitchen users should have a notification.
+      const k1Notifs = await NotificationModel.find({
+        userId: fixtures.kitchen._id,
+        title: 'New Order',
+      });
+      const k2Notifs = await NotificationModel.find({
+        userId: kitchen2._id,
+        title: 'New Order',
+      });
+      expect(k1Notifs.length).toBeGreaterThan(0);
+      expect(k2Notifs.length).toBeGreaterThan(0);
+    });
+
+    it('3. kitchen user with no device token still gets the MongoDB notification', async () => {
+      // The seeded kitchen user has NO device tokens registered.
+      await createOrderFromCart();
+
+      const notifs = await NotificationModel.find({
+        userId: fixtures.kitchen._id,
+        title: 'New Order',
+      });
+      expect(notifs.length).toBeGreaterThan(0);
+    });
+
+    it('4. FCM send is attempted when kitchen user has a device token (spy)', async () => {
+      // Register a device token for the kitchen user.
+      const token = 'fcm-token-kitchen-device-kkkkkkkkkkkkkkkkkkkkkkk';
+      await request(app)
+        .post('/api/notifications/device-token')
+        .set(authHeader(fixtures.kitchen._id.toString(), 'kitchen'))
+        .send({ token });
+
+      const { fcmService } = await import('../src/services/fcm.service');
+      const spy = jest.spyOn(fcmService, 'sendPush');
+
+      await createOrderFromCart();
+
+      // The spy should have been called at least once with the kitchen token.
+      const kitchenCall = spy.mock.calls.find(
+        ([tokens]) => Array.isArray(tokens) && tokens.includes(token),
+      );
+      expect(kitchenCall).toBeTruthy();
+      if (kitchenCall) {
+        const [, message] = kitchenCall;
+        expect(message.title).toBe('New Order');
+        expect(message.data?.orderId).toBeTruthy();
+        expect(message.data?.type).toBe('NEW_ORDER');
+        expect(message.data?.clickAction).toBe('NEW_ORDER');
+      }
+
+      spy.mockRestore();
+    });
+
+    it('5. FCM failure does NOT roll back order creation', async () => {
+      const { fcmService } = await import('../src/services/fcm.service');
+      const spy = jest.spyOn(fcmService, 'sendPush').mockImplementation(async () => {
+        throw new Error('simulated FCM network failure');
+      });
+
+      const orderRes = await request(app)
+        .post('/api/cart/items')
+        .set(authHeader(fixtures.customer._id.toString(), 'customer'))
+        .send({ productId: fixtures.burger._id.toString(), quantity: 1 });
+      expect(orderRes.status).toBe(201);
+
+      const createRes = await request(app)
+        .post('/api/orders')
+        .set(authHeader(fixtures.customer._id.toString(), 'customer'))
+        .send({ orderType: 'TAKEAWAY' });
+
+      // Order creation MUST succeed regardless of FCM outcome.
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.data.orderId).toBeTruthy();
+
+      // The in-app notification for the kitchen user MUST still be persisted.
+      const notifs = await NotificationModel.find({
+        userId: fixtures.kitchen._id,
+        title: 'New Order',
+      });
+      expect(notifs.length).toBeGreaterThan(0);
+
+      spy.mockRestore();
+    });
+
+    it('6. no kitchen users exist → order still created successfully', async () => {
+      // Remove the seeded kitchen user so there are none.
+      const { UserModel } = await import('../src/models/user.model');
+      await UserModel.deleteMany({ role: 'kitchen' });
+
+      const orderRes = await request(app)
+        .post('/api/cart/items')
+        .set(authHeader(fixtures.customer._id.toString(), 'customer'))
+        .send({ productId: fixtures.burger._id.toString(), quantity: 1 });
+      expect(orderRes.status).toBe(201);
+
+      const createRes = await request(app)
+        .post('/api/orders')
+        .set(authHeader(fixtures.customer._id.toString(), 'customer'))
+        .send({ orderType: 'TAKEAWAY' });
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.data.orderId).toBeTruthy();
+
+      // No kitchen notifications should exist.
+      const kitchenNotifs = await NotificationModel.find({
+        title: 'New Order',
+      });
+      expect(kitchenNotifs.length).toBe(0);
+    });
+
+    it('7. existing customer "Order received" notification still works', async () => {
+      // The customer should still receive their own "Order received" notification.
+      await createOrderFromCart();
+
+      const customerNotifs = await NotificationModel.find({
+        userId: fixtures.customer._id,
+        title: 'Order received',
+      });
+      expect(customerNotifs.length).toBeGreaterThan(0);
+    });
+
+    it('8. existing Kitchen → Customer status-change flow still works', async () => {
+      // Place an order, then change its status. The customer should still
+      // receive the "Order status updated" notification.
+      const orderId = await createOrderFromCart();
+
+      const statusRes = await request(app)
+        .patch(`/api/orders/${orderId}/status`)
+        .set(authHeader(fixtures.kitchen._id.toString(), 'kitchen'))
+        .send({ status: 'confirmed' });
+      expect(statusRes.status).toBe(200);
+
+      const customerStatusNotifs = await NotificationModel.find({
+        userId: fixtures.customer._id,
+        title: 'Order status updated',
+      });
+      expect(customerStatusNotifs.length).toBeGreaterThan(0);
+      expect(customerStatusNotifs[0].data?.status).toBe('confirmed');
+    });
+  });
 });

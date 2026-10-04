@@ -35,6 +35,21 @@ export class UserRepository {
     return UserModel.findById(id);
   }
 
+  /**
+   * Find all users with a specific role. Used by the notification service
+   * to fan-out notifications to all staff of a given role (e.g. notify ALL
+   * kitchen users when a new order is placed).
+   *
+   * Selects only the fields needed for notification dispatch — `_id` and
+   * `deviceTokens` — to keep the query cheap. Password hash is never
+   * selected (it has `select: false` in the schema anyway).
+   *
+   * Returns an empty array if no users with the given role exist.
+   */
+  async findByRole(role: Role) {
+    return UserModel.find({ role }).select('deviceTokens');
+  }
+
   async updateById(id: string, update: Record<string, unknown>) {
     const user = await UserModel.findByIdAndUpdate(id, update, { new: true });
     if (!user) throw new NotFoundError('User not found', ErrorCodes.USER_NOT_FOUND);
