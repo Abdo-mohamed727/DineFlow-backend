@@ -4,6 +4,7 @@ import { diningSessionRepository } from '../repositories/diningSession.repositor
 import { notificationRepository } from '../repositories/notification.repository';
 import { notificationService } from './notification.service';
 import { cartRepository } from '../repositories/cart.repository';
+import { realtimeService } from '../realtime/realtime.service';
 import { calculateTotals } from '../utils/pricing';
 import {
   assertTransition,
@@ -187,6 +188,14 @@ export class OrderService {
       console.warn(`Failed to notify kitchen of new order ${order.id}:`, (err as Error).message);
     }
 
+    // Real-time push to the kitchen room via Socket.IO. Best-effort —
+    // the realtime service is a no-op if Socket.IO isn't initialized.
+    // The payload is the order document in its REST response shape
+    // (post-toJSON), so the Flutter KDS client can render it directly.
+    realtimeService.emitOrderCreated(
+      (order.toJSON ? order.toJSON() : (order as unknown as Record<string, unknown>)) as Record<string, unknown>,
+    );
+
     // Cart clearing: ONLY when items came from the cart AND the order was
     // successfully created. If order creation threw above, we never reach
     // this line — the cart stays intact for retry.
@@ -277,6 +286,17 @@ export class OrderService {
         orderId: order.id,
         orderNumber: order.orderNumber,
         newStatus: target,
+      });
+
+      // Real-time Socket.IO push to kitchen + waiter + the specific customer.
+      // Best-effort — no-op if Socket.IO isn't initialized (e.g. in tests
+      // that don't boot the full server).
+      realtimeService.emitOrderStatusChanged({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        newStatus: target,
+        oldStatus,
+        customerId: order.customerId.toString(),
       });
     }
 
